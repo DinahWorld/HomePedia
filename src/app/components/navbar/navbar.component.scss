@@ -1,0 +1,18 @@
+.example-spacer {
+    flex: 1 1 auto;
+}
+
+.example-button-row {
+    display: table-cell;
+    max-width: 600px;
+}
+
+button.test {
+    background-color: green;
+    color: white;
+}
+
+.green {
+    color: green;
+    padding-left: 5px;
+}
