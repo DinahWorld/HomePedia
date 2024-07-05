@@ -37,50 +37,107 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   addTileset(): void {
     // ID du tileset Mapbox Studio
-    const tilesetId = 'coco2000.cly8nq9vu67si1npi4gfntgpc-2122u';
+    const tilesetIdRegion = 'coco2000.cly8nq9vu67si1npi4gfntgpc-2122u';
     const tilesetIdCommune = "coco2000.483n6nsu";
+    const tilesetIdDepartement = "coco2000.cly8tsu9eqedt1mp8ukw6vb98-3ctsw";
+
 
     // Ajouter une source pour le tileset
-    this.map.addSource('my-tileset', {
+    this.map.addSource('region', {
       'type': 'vector',
-      'url': `mapbox://${tilesetId}`
+      'url': `mapbox://${tilesetIdRegion}`
     });
     this.map.addSource('commune', {
       'type': 'vector',
       'url': `mapbox://${tilesetIdCommune}`
     });
+    this.map.addSource('departement', {
+      'type': 'vector',
+      'url': `mapbox://${tilesetIdDepartement}`
+    });
 
     // Ajouter une couche pour afficher le tileset
     this.map.addLayer({
-      'id': 'my-tileset-layer',
+      'id': 'region-layer',
       'type': 'fill',
-      'source': 'my-tileset',
+      'source': 'region',
       'source-layer': 'test',
       'layout': {},
       'paint': {
         'fill-color': '#088',
-        'fill-opacity': 0.4
-      }
+        'fill-opacity': 0.2
+      },
+      'maxzoom': 7
     });
     this.map.addLayer({
-      'id': 'commune',
+      'id': 'region-outline',
+      'type': 'line',
+      'source': 'region',
+      'source-layer': 'test',
+      'layout': {},
+      'paint': {
+        'line-color': '#088',
+        'line-width': 1.2
+      },
+      'maxzoom': 7
+    });
+    this.map.addLayer({
+      'id': 'departement-layer',
       'type': 'fill',
-      'source': 'my-tileset',
-      'source-layer': 'communes-5e3qyf',
+      'source': 'departement',
+      'source-layer': 'departement',
       'layout': {},
       'paint': {
         'fill-color': '#088',
-        'fill-opacity': 0.6
+        'fill-opacity': 0.4
       },
-      'minzoom': 6
+      'minzoom': 7, // Afficher ce calque à partir d'un zoom de 6
+      'maxzoom': 12
+    });
+    this.map.addLayer({
+      'id': 'department-outline',
+      'type': 'line',
+      'source': 'departement',
+      'source-layer': 'departement', // Remplacez par le nom de votre couche source
+      'layout': {},
+      'paint': {
+        'line-color': '#088',
+        'line-width': 1.5
+      },
+      'minzoom': 7, // Afficher ce calque à partir d'un zoom de 6
+      'maxzoom': 11 // Afficher ce calque jusqu'à un zoom de 10
+    });
+    this.map.addLayer({
+      'id': 'commune-layer',
+      'type': 'fill',
+      'source': 'commune',
+      'source-layer': 'communes-5e3qyf',
+      'layout': {},
+      'paint': {
+        'fill-color': '#e00',
+        'fill-opacity': 0.3
+      },
+      'minzoom': 11
+    });
+    this.map.addLayer({
+      'id': 'commune-outline',
+      'type': 'line',
+      'source': 'commune',
+      'source-layer': 'communes-5e3qyf',
+      'layout': {},
+      'paint': {
+        'line-color': '#e00',
+        'line-width': 1.5
+      },
+      'minzoom': 11
     });
   }
+
   addClickListener(): void {
-    this.map.on('click', 'my-tileset-layer', (e) => {
+    this.map.on('click', 'region-layer', (e) => {
       const feature = e.features[0];
       const regionName = feature.properties.nom; // Supposons que 'regionName' est un champ dans vos données
       const coordinates = e.lngLat.toArray();
-      console.log(feature.properties.nom); // Affichez les propriétés de la région dans la console
 
       if (this.marker) {
         this.marker.remove();
@@ -94,6 +151,54 @@ export class MapComponent implements OnInit, AfterViewInit {
       .addTo(this.map);
 
       // Fermer la popup quand le marqueur est cliqué
+      this.marker.setPopup(popup);
+    });
+    this.map.on('click', 'commune-layer', (e) => {
+      const feature = e.features[0];
+      const communeName = feature.properties.nom;
+      const coordinates = e.lngLat.toArray();
+
+      // Supprimer le marqueur précédent s'il existe
+      if (this.marker) {
+        this.marker.remove();
+      }
+
+      // Créer un nouveau marqueur à l'endroit où l'utilisateur a cliqué
+      this.marker = new mapboxgl.Marker()
+        .setLngLat(coordinates)
+        .addTo(this.map);
+
+      // Créer une popup pour afficher le nom du département
+      const popup = new mapboxgl.Popup({ offset: 25 })
+        .setLngLat(coordinates)
+        .setHTML(`<h3>${communeName}</h3>`)
+        .addTo(this.map);
+
+      // Associer la popup au marqueur
+      this.marker.setPopup(popup);
+    });
+    this.map.on('click', 'departement-layer', (e) => {
+      const feature = e.features[0];
+      const departmentName = feature.properties.nom;
+      const coordinates = e.lngLat.toArray();
+
+      // Supprimer le marqueur précédent s'il existe
+      if (this.marker) {
+        this.marker.remove();
+      }
+
+      // Créer un nouveau marqueur à l'endroit où l'utilisateur a cliqué
+      this.marker = new mapboxgl.Marker()
+        .setLngLat(coordinates)
+        .addTo(this.map);
+
+      // Créer une popup pour afficher le nom du département
+      const popup = new mapboxgl.Popup({ offset: 25 })
+        .setLngLat(coordinates)
+        .setHTML(`<h3>${departmentName}</h3>`)
+        .addTo(this.map);
+
+      // Associer la popup au marqueur
       this.marker.setPopup(popup);
     });
   }
