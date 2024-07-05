@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import {MatTableModule} from '@angular/material/table';
+import { MapComponent } from '../../components/map/map.component';
+import { NgIf } from '@angular/common';
 
 export interface PeriodicElement {
   name: string;
@@ -24,11 +26,19 @@ const ELEMENT_DATA: PeriodicElement[] = [
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [MatTableModule],
+  imports: [MatTableModule, MapComponent, NgIf],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   displayedColumns: string[] = ['position', 'name', 'weight'];
   dataSource = ELEMENT_DATA;
+  isMapLoaded = false;
+
+  ngOnInit(): void {
+    // Simuler un chargement ou une condition spécifique avant d'afficher la carte
+    setTimeout(() => {
+      this.isMapLoaded = true;
+    }, 1000); // Par exemple, 1 seconde
+  }
 }
