@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import mapboxgl from 'mapbox-gl';
+import { AfterViewInit, Component, OnInit } from '@angular/core';
+import mapboxgl from 'mapbox-gl'; // or "const mapboxgl = require('mapbox-gl');"
 import environments from "../../../environments/environment";
 import { CommunePriceM2Service } from "../../services/communepricem2.service";
 import { DepartementsPriceM2Service } from "../../services/departementspricem2.service";
@@ -11,20 +11,17 @@ import { RegionPriceM2Service } from "../../services/regionspricem2.service";
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss']
 })
-export class MapComponent implements OnInit {
+export class MapComponent implements OnInit, AfterViewInit {
   map!: mapboxgl.Map;
   lat: number = 46.603354;
   lng: number = 1.888334;
   marker: mapboxgl.Marker | null = null;
 
-  constructor(
-    private communePriceM2Service: CommunePriceM2Service,
-    private departementsPriceM2Service: DepartementsPriceM2Service,
-    private regionPriceM2Service: RegionPriceM2Service
-  ) {}
-
-  ngOnInit(): void {
+  
+  ngOnInit() : void {
     (mapboxgl as typeof mapboxgl).accessToken = environments.mapbox.accessToken;
+  }
+  ngAfterViewInit(): void {
     this.map = new mapboxgl.Map({
       container: 'map', // container ID
       style: 'mapbox://styles/mapbox/streets-v12', // style URL
@@ -35,6 +32,69 @@ export class MapComponent implements OnInit {
     this.map.on('load', () => {
       this.addTileset();
       this.addClickListener();
+    });
+  }
+
+  addTileset(): void {
+    // ID du tileset Mapbox Studio
+    const tilesetId = 'coco2000.cly8nq9vu67si1npi4gfntgpc-2122u';
+    const tilesetIdCommune = "coco2000.483n6nsu";
+
+    // Ajouter une source pour le tileset
+    this.map.addSource('my-tileset', {
+      'type': 'vector',
+      'url': `mapbox://${tilesetId}`
+    });
+    this.map.addSource('commune', {
+      'type': 'vector',
+      'url': `mapbox://${tilesetIdCommune}`
+    });
+
+    // Ajouter une couche pour afficher le tileset
+    this.map.addLayer({
+      'id': 'my-tileset-layer',
+      'type': 'fill',
+      'source': 'my-tileset',
+      'source-layer': 'test',
+      'layout': {},
+      'paint': {
+        'fill-color': '#088',
+        'fill-opacity': 0.4
+      }
+    });
+    this.map.addLayer({
+      'id': 'commune',
+      'type': 'fill',
+      'source': 'my-tileset',
+      'source-layer': 'communes-5e3qyf',
+      'layout': {},
+      'paint': {
+        'fill-color': '#088',
+        'fill-opacity': 0.6
+      },
+      'minzoom': 6
+    });
+  }
+  addClickListener(): void {
+    this.map.on('click', 'my-tileset-layer', (e) => {
+      const feature = e.features[0];
+      const regionName = feature.properties.nom; // Supposons que 'regionName' est un champ dans vos données
+      const coordinates = e.lngLat.toArray();
+      console.log(feature.properties.nom); // Affichez les propriétés de la région dans la console
+
+      if (this.marker) {
+        this.marker.remove();
+      }
+      this.marker = new mapboxgl.Marker()
+      .setLngLat(coordinates)
+      .addTo(this.map);
+      const popup = new mapboxgl.Popup({ offset: 25 })
+      .setLngLat(coordinates)
+      .setHTML(`<h3>${regionName}</h3>`)
+      .addTo(this.map);
+
+      // Fermer la popup quand le marqueur est cliqué
+      this.marker.setPopup(popup);
     });
   }
 
