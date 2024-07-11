@@ -1,9 +1,8 @@
-import { AfterViewInit, Component, OnInit } from '@angular/core';
-import mapboxgl from 'mapbox-gl'; // or "const mapboxgl = require('mapbox-gl');"
+import { AfterViewInit, Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
+import mapboxgl from 'mapbox-gl';
 import environments from "../../../environments/environment";
-import { CommunePriceM2Service } from "../../services/communepricem2.service";
-import { DepartementsPriceM2Service } from "../../services/departementspricem2.service";
-import { RegionPriceM2Service } from "../../services/regionspricem2.service";
+import { isPlatformBrowser } from '@angular/common';
+
 
 @Component({
   selector: 'app-map',
@@ -17,25 +16,41 @@ export class MapComponent implements OnInit, AfterViewInit {
   lng: number = 1.888334;
   marker: mapboxgl.Marker | null = null;
 
-  
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+
   ngOnInit() : void {
     (mapboxgl as typeof mapboxgl).accessToken = environments.mapbox.accessToken;
   }
   ngAfterViewInit(): void {
-    this.map = new mapboxgl.Map({
-      container: 'map', // container ID
-      style: 'mapbox://styles/mapbox/streets-v12', // style URL
-      center: [this.lng, this.lat], // starting position [lng, lat]
-      zoom: 5, // starting zoom
-    });
+    if (isPlatformBrowser(this.platformId)) {
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) {
+        this.map = new mapboxgl.Map({
+          container: 'map', // container ID
+          style: 'mapbox://styles/mapbox/streets-v12', // style URL
+          center: [this.lng, this.lat], // starting position [lng, lat]
+          zoom: 5, // starting zoom
+        });
 
-    this.map.on('load', () => {
-      this.addTileset();
-      this.addClickListener();
-    });
+        this.map.on('load', () => {
+          console.log('Map loaded');
+          this.addTileset();
+          this.addClickListener();
+        });
+      } else {
+        console.error('Map container not found');
+      }
+    } else {
+      console.error('This code is not running in the browser');
+    }
   }
 
   addTileset(): void {
+    if (!this.map) {
+      console.error('Map is not initialized');
+      return;
+    }
+
     // ID du tileset Mapbox Studio
     const tilesetIdRegion = 'coco2000.cly8nq9vu67si1npi4gfntgpc-2122u';
     const tilesetIdCommune = "coco2000.483n6nsu";
