@@ -11,8 +11,14 @@ export class EducationService {
 
   constructor(private http: HttpClient) {}
 
+  private formatLocality(locality: string): string {
+    if (!locality) return locality;
+    return locality.toUpperCase();
+  }
+
   searchSchoolsByLocation(locality: string): Observable<any> {
-    const params = new HttpParams().set('limit', '20').set('refine', `localite_acheminement_uai:"${locality}"`);
+    const formattedLocality = this.formatLocality(locality);
+    const params = new HttpParams().set('limit', '20').set('refine', `localite_acheminement_uai:"${formattedLocality}"`);
 
     return this.http.get<any>(this.url, { params });
   }
