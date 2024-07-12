@@ -13,7 +13,6 @@ import { ElectionsService } from '../../services/elections.service';
 })
 export class DashboardComponent {
   searchValue = '';
-  department = 94;
   countryData: any;
 
   constructor(
