@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { EducationService } from '../../services/education.service';
 import { RestaurantService } from '../../services/restaurant.service';
 import { ElectionsService } from '../../services/elections.service';
+import { ElectionChartComponent } from '../../components/election-chart/election-chart.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -54,7 +55,7 @@ export class DashboardComponent {
 }
 
 @NgModule({
-  imports: [BrowserModule, FormsModule],
+  imports: [BrowserModule, FormsModule, ElectionChartComponent],
   declarations: [DashboardComponent],
 })
 export class DummyModule {}
