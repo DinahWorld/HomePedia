@@ -1,7 +1,22 @@
 import { AfterViewInit, Component, Inject, NgZone, OnInit, PLATFORM_ID } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import mapboxgl from 'mapbox-gl';
 import environments from "../../../environments/environment";
 import { isPlatformBrowser } from '@angular/common';
+import { prices, PriceData } from './data';
+
+interface GeoJSONFeature {
+  id: number;
+  properties: {
+    nom: string;
+    price?: number;
+  };
+}
+
+interface GeoJSONData {
+  type: "FeatureCollection";
+  features: GeoJSONFeature[];
+}
 
 @Component({
   selector: 'app-map',
@@ -13,12 +28,17 @@ export class MapComponent implements OnInit, AfterViewInit {
   map!: mapboxgl.Map;
   lat: number = 46.603354;
   lng: number = 1.888334;
-  marker: mapboxgl.Marker | null = null;
+  hoveredFeatureId: number | null = null;
+  lastPlace: string = "";
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object, private zone: NgZone) {}
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private zone: NgZone,
+    private http: HttpClient
+  ) {}
 
   ngOnInit(): void {
-    (mapboxgl as typeof mapboxgl).accessToken = environments.mapbox.accessToken;
+    mapboxgl.accessToken = environments.mapbox.accessToken;
   }
 
   ngAfterViewInit(): void {
@@ -35,34 +55,96 @@ export class MapComponent implements OnInit, AfterViewInit {
     const mapContainer = document.getElementById('map');
     if (mapContainer) {
       this.map = new mapboxgl.Map({
-        container: 'map', // container ID
-        style: 'mapbox://styles/mapbox/streets-v12', // style URL
-        center: [this.lng, this.lat], // starting position [lng, lat]
-        zoom: 5, // starting zoom
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [this.lng, this.lat],
+        zoom: 4.5,
       });
 
       this.map.on('load', () => {
-        this.addTilesets();
-        this.addClickListeners();
+        console.log('Map loaded');
+        this.loadGeoJSONData();
+        this.addHoverListeners();
       });
     } else {
       console.error('Map container not found');
     }
   }
 
-  addSource(id: string, url: string): void {
-    this.map.addSource(id, {
-      type: 'vector',
-      url: `mapbox://${url}`
+  loadGeoJSONData(): void {
+    this.loadRegionData();
+    this.loadDepartementData();
+    this.loadCommuneData();
+  }
+
+  loadRegionData(): void {
+    this.http.get<GeoJSONData>('assets/regions.geojson').subscribe(data => {
+      const geojsonData = this.addIdsToGeoJSONData(data, prices['region']);
+      this.addSource('region', geojsonData);
+      this.addLayer('region-layer', 'region', 'fill', { 'fill-opacity': 0 }, {}, 3, 6.5);
+      this.addLayer('region-outline', 'region', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.8], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 3, 6.5);
     });
   }
 
-  addLayer(id: string, source: string, sourceLayer: string, type: 'fill' | 'line', paint: any, layout: any = {}, minzoom?: number, maxzoom?: number): void {
+  loadDepartementData(): void {
+    this.http.get<GeoJSONData>('assets/departements.geojson').subscribe(data => {
+      const geojsonData = this.addIdsToGeoJSONData(data, prices['departement']);
+      this.addSource('departement', geojsonData);
+      const colorExpression = this.generateColorExpression(prices['departement']);
+      this.addLayer('departement-layer', 'departement', 'fill', { 'fill-color': colorExpression, 'fill-opacity': 0.7 }, {}, 3, 7.2);
+      this.addLayer('departement-outline', 'departement', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0.3], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 4, 6.5);
+      this.addLayer('departement-outline-zoom', 'departement', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 6.5, 10.5);
+    });
+  }
+
+  loadCommuneData(): void {
+    this.http.get<GeoJSONData>('assets/communes.geojson').subscribe(data => {
+      const geojsonData = this.addIdsToGeoJSONData(data, prices['commune']);
+      this.addSource('commune', geojsonData);
+      const colorExpression = this.generateColorExpression(prices['commune']);
+      this.addLayer('commune-layer', 'commune', 'fill', { 'fill-color': colorExpression, 'fill-opacity': 0.7 }, {}, 7.2);
+      this.addLayer('commune-outline', 'commune', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0.3], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 7.2, 10.5);
+      this.addLayer('commune-outline-zoom', 'commune', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 10.5);
+
+      this.map.moveLayer("region-outline", "departement-outline");
+      this.map.moveLayer("departement-outline-zoom", "commune-outline");
+      this.map.moveLayer("region-layer", "departement-layer");
+    });
+  }
+
+  addIdsToGeoJSONData(data: GeoJSONData, priceData: PriceData[]): GeoJSONData {
+    data.features.forEach((feature, index) => {
+      feature.id = index + 1;
+      const region = priceData.find(r => r.name === feature.properties.nom);
+      if (region) {
+        feature.properties.price = region.price;
+      }
+    });
+    return data;
+  }
+
+  addPricesToGeoJSONData(data: GeoJSONData, priceData: PriceData[]): GeoJSONData {
+    data.features.forEach(feature => {
+      const region = priceData.find(r => r.name === feature.properties.nom);
+      if (region) {
+        feature.properties.price = region.price;
+      }
+    });
+    return data;
+  }
+
+  addSource(id: string, data: GeoJSONData): void {
+    this.map.addSource(id, {
+      type: 'geojson',
+      data: data as any
+    });
+  }
+
+  addLayer(id: string, source: string, type: 'fill' | 'line', paint: any, layout: any = {}, minzoom?: number, maxzoom?: number,): void {
     this.map.addLayer({
       id: id,
       type: type,
       source: source,
-      'source-layer': sourceLayer,
       layout: layout,
       paint: paint,
       ...(minzoom !== undefined && { minzoom: minzoom }),
@@ -70,258 +152,67 @@ export class MapComponent implements OnInit, AfterViewInit {
     });
   }
 
-  addTilesets(): void {
-    if (!this.map) {
-      console.error('Map is not initialized');
-      return;
+  generateColorExpression(prices: PriceData[]): any[] {
+    const stops = [];
+    const colors = ['#FFFFFF', '#FFCCCC', '#FF9999', '#FF6666', '#FF0000'];
+
+    const priceValues = prices.map((entry: PriceData) => entry.price);
+    const minPrice = Math.min(...priceValues);
+    const maxPrice = Math.max(...priceValues);
+    const step = (maxPrice - minPrice) / (colors.length - 1);
+
+    for (let i = 0; i < colors.length; i++) {
+      const price = minPrice + i * step;
+      stops.push([price, colors[i]]);
     }
 
-    const tilesets = [
-      { id: 'region', url: 'coco2000.cly8nq9vu67si1npi4gfntgpc-2122u', layer: 'test', paint: { fill: { 'fill-color': '#088', 'fill-opacity': 0.2 }, line: { 'line-color': '#088', 'line-width': 1.2 } }, maxzoom: 7 },
-      { id: 'departement', url: 'coco2000.cly8tsu9eqedt1mp8ukw6vb98-3ctsw', layer: 'departement', paint: { fill: { 'fill-color': '#088', 'fill-opacity': 0.4 }, line: { 'line-color': '#088', 'line-width': 1.5 } }, minzoom: 7, maxzoom: 11 },
-      { id: 'commune', url: 'coco2000.483n6nsu', layer: 'communes-5e3qyf', paint: { fill: { 'fill-color': '#e00', 'fill-opacity': 0.3 }, line: { 'line-color': '#e00', 'line-width': 1.5 } }, minzoom: 11 }
+    return ['interpolate', ['linear'], ['get', 'price'], ...stops.flat()];
+  }
+
+  addHoverListeners(): void {
+    const layers = [
+      { id: 'region-layer', minZoom: 3, maxZoom: 6 },
+      { id: 'departement-layer', minZoom: 6, maxZoom: 8 },
+      { id: 'commune-layer', minZoom: 8, maxZoom: 14 }
     ];
-
-    tilesets.forEach(tileset => {
-      this.addSource(tileset.id, tileset.url);
-      this.addLayer(`${tileset.id}-layer`, tileset.id, tileset.layer, 'fill', tileset.paint.fill, {}, tileset.minzoom, tileset.maxzoom);
-      this.addLayer(`${tileset.id}-outline`, tileset.id, tileset.layer, 'line', tileset.paint.line, {}, tileset.minzoom, tileset.maxzoom);
-    });
-  }
-
-  addClickListeners(): void {
-    const layers = ['region-layer', 'departement-layer', 'commune-layer'];
-
+  
     layers.forEach(layer => {
-      this.map.on('click', layer, (e) => {
-        const feature = e.features[0];
-        const placeName = feature.properties.nom;
-        const coordinates = e.lngLat.toArray();
-
-        if (this.marker) {
-          this.marker.remove();
+      this.map.on('click', layer.id, (e) => {
+        const currentZoom = this.map.getZoom();
+        if (currentZoom < layer.minZoom || currentZoom > layer.maxZoom) {
+          return;
         }
-
-        this.marker = new mapboxgl.Marker()
-          .setLngLat(coordinates)
-          .addTo(this.map);
-
-        const popup = new mapboxgl.Popup({ offset: 25 })
-          .setLngLat(coordinates)
-          .setHTML(`<h3>${placeName}</h3>`)
-          .addTo(this.map);
-
-        this.marker.setPopup(popup);
+  
+        const feature = e.features && e.features[0];
+        if (!feature) {
+          // console.log('No feature found at click event');
+          return;
+        }
+  
+        // Réinitialisez l'état de la région précédemment sélectionnée
+        if (this.hoveredFeatureId !== null && this.hoveredFeatureId !== feature.id) {
+          this.map.setFeatureState(
+            { source: this.lastPlace.split('-')[0], id: this.hoveredFeatureId },
+            { hover: false }
+          );
+        }
+  
+        // Conservez l'ID de la région cliquée
+        this.hoveredFeatureId = feature.id as number;
+        this.lastPlace = layer.id;
+  
+        this.map.setFeatureState(
+          { source: layer.id.split('-')[0], id: this.hoveredFeatureId },
+          { hover: true }
+        );
+  
+        // Affichez le nom de la région et le prix au mètre carré
+        const regionName = feature.properties.nom;
+        const pricePerSquareMeter = feature.properties.price;
+        console.log(`${layer.id.split('-')[0]} : ${regionName}, Prix au mètre carré : ${pricePerSquareMeter}`);
       });
     });
   }
-
-  addTileset(): void {
-    const tilesetIdRegion = 'coco2000.cly8nq9vu67si1npi4gfntgpc-2122u';
-    const tilesetIdCommune = "coco2000.483n6nsu";
-    const tilesetIdDepartement = "coco2000.cly8tsu9eqedt1mp8ukw6vb98-3ctsw";
-
-    this.map.addSource('region', {
-      'type': 'vector',
-      'url': `mapbox://${tilesetIdRegion}`
-    });
-    this.map.addSource('commune', {
-      'type': 'vector',
-      'url': `mapbox://${tilesetIdCommune}`
-    });
-    this.map.addSource('departement', {
-      'type': 'vector',
-      'url': `mapbox://${tilesetIdDepartement}`
-    });
-
-    this.map.addLayer({
-      'id': 'region-layer',
-      'type': 'fill',
-      'source': 'region',
-      'source-layer': 'test',
-      'layout': {},
-      'paint': {
-        'fill-color': '#088',
-        'fill-opacity': 0.2
-      },
-      'maxzoom': 7
-    });
-
-    this.map.addLayer({
-      'id': 'region-outline',
-      'type': 'line',
-      'source': 'region',
-      'source-layer': 'test',
-      'layout': {},
-      'paint': {
-        'line-color': '#088',
-        'line-width': 1.2
-      },
-      'maxzoom': 7
-    });
-
-    this.map.addLayer({
-      'id': 'departement-layer',
-      'type': 'fill',
-      'source': 'departement',
-      'source-layer': 'departement',
-      'layout': {},
-      'paint': {
-        'fill-color': '#088',
-        'fill-opacity': 0.4
-      },
-      'minzoom': 7, // Afficher ce calque à partir d'un zoom de 6
-      'maxzoom': 12
-    });
-
-    this.map.addLayer({
-      'id': 'department-outline',
-      'type': 'line',
-      'source': 'departement',
-      'source-layer': 'departement', // Remplacez par le nom de votre couche source
-      'layout': {},
-      'paint': {
-        'line-color': '#088',
-        'line-width': 1.5
-      },
-      'minzoom': 7, // Afficher ce calque à partir d'un zoom de 6
-      'maxzoom': 11 // Afficher ce calque jusqu'à un zoom de 10
-    });
-
-    this.map.addLayer({
-      'id': 'commune-layer',
-      'type': 'fill',
-      'source': 'commune',
-      'source-layer': 'communes-5e3qyf',
-      'layout': {},
-      'paint': {
-        'fill-color': '#e00',
-        'fill-opacity': 0.3
-      },
-      'minzoom': 11
-    });
-
-    this.map.addLayer({
-      'id': 'commune-outline',
-      'type': 'line',
-      'source': 'commune',
-      'source-layer': 'communes-5e3qyf',
-      'layout': {},
-      'paint': {
-        'line-color': '#e00',
-        'line-width': 1.5
-      },
-      'minzoom': 11
-    });
-  }
-
-  addClickListener(): void {
-    this.map.on('click', 'commune-layer', (e) => {
-      const feature = e.features[0];
-      const communeName = feature.properties.nom;
-      const communeCodePostal = feature.properties.code;
-      const coordinates: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-
-      // Supprimer le marqueur précédent s'il existe
-      if (this.marker) {
-        this.marker.remove();
-      }
-
-      // Créer un nouveau marqueur à l'endroit où l'utilisateur a cliqué
-      this.marker = new mapboxgl.Marker()
-        .setLngLat(coordinates)
-        .addTo(this.map);
-
-      // Appel API pour récupérer les données de la commune
-      this.communePriceM2Service.getCommuneData(communeCodePostal).subscribe((data: { results: any[]; }) => {
-        const results2022 = data.results.find(result => result.annee === '2022');
-        if (results2022) {
-          const pxm2Median = results2022.pxm2_median_cod111;
-          console.log(`Prix médian par m² (2022) pour la commune ${communeName} (${communeCodePostal}): ${pxm2Median} €`);
-          const popup = new mapboxgl.Popup({ offset: 25 })
-            .setLngLat(coordinates)
-            .setHTML(`<h3>${communeName}</h3><p>Prix médian par m² (2022): ${pxm2Median} €</p>`)
-            .addTo(this.map);
-        } else {
-          console.log(`Pas de données disponibles pour 2022 pour la commune ${communeName} (${communeCodePostal}).`);
-          const popup = new mapboxgl.Popup({ offset: 25 })
-            .setLngLat(coordinates)
-            .setHTML(`<h3>${communeName}</h3><p>Pas de données disponibles pour 2022.</p>`)
-            .addTo(this.map);
-        }
-      });
-    });
-
-    this.map.on('click', 'departement-layer', (e) => {
-      const feature = e.features[0];
-      const departmentName = feature.properties.nom;
-      const departmentCode = feature.properties.code;
-      const coordinates: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-
-      // Supprimer le marqueur précédent s'il existe
-      if (this.marker) {
-        this.marker.remove();
-      }
-
-      // Créer un nouveau marqueur à l'endroit où l'utilisateur a cliqué
-      this.marker = new mapboxgl.Marker()
-        .setLngLat(coordinates)
-        .addTo(this.map);
-
-      // Appel API pour récupérer les données du département
-      this.departementsPriceM2Service.getDepartementPriceData(departmentCode).subscribe((data: { results: any[]; }) => {
-        const results2022 = data.results.find(result => result.annee === '2022');
-        if (results2022) {
-          const pxm2Median = results2022.pxm2_median_cod111;
-          console.log(`Prix médian par m² (2022) pour le département ${departmentName} (${departmentCode}): ${pxm2Median} €`);
-          const popup = new mapboxgl.Popup({ offset: 25 })
-            .setLngLat(coordinates)
-            .setHTML(`<h3>${departmentName}</h3><p>Prix médian par m² (2022): ${pxm2Median} €</p>`)
-            .addTo(this.map);
-        } else {
-          console.log(`Pas de données disponibles pour 2022 pour le département ${departmentName} (${departmentCode}).`);
-          const popup = new mapboxgl.Popup({ offset: 25 })
-            .setLngLat(coordinates)
-            .setHTML(`<h3>${departmentName}</h3><p>Pas de données disponibles pour 2022.</p>`)
-            .addTo(this.map);
-        }
-      });
-    });
-
-    this.map.on('click', 'region-layer', (e) => {
-      const feature = e.features[0];
-      const regionName = feature.properties.nom;
-      const regionCode = feature.properties.code;
-      const coordinates: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-
-      // Supprimer le marqueur précédent s'il existe
-      if (this.marker) {
-        this.marker.remove();
-      }
-
-      // Créer un nouveau marqueur à l'endroit où l'utilisateur a cliqué
-      this.marker = new mapboxgl.Marker()
-        .setLngLat(coordinates)
-        .addTo(this.map);
-
-      // Appel API pour récupérer les données de la région
-      this.regionPriceM2Service.getRegionPriceData(regionCode).subscribe((data: { results: any[]; }) => {
-        const results2022 = data.results.find(result => result.annee === '2022');
-        if (results2022) {
-          const pxm2Median = results2022.pxm2_median_cod111;
-          console.log(`Prix médian par m² (2022) pour la région ${regionName} (${regionCode}): ${pxm2Median} €`);
-          const popup = new mapboxgl.Popup({ offset: 25 })
-            .setLngLat(coordinates)
-            .setHTML(`<h3>${regionName}</h3><p>Prix médian par m² (2022): ${pxm2Median} €</p>`)
-            .addTo(this.map);
-        } else {
-          console.log(`Pas de données disponibles pour 2022 pour la région ${regionName} (${regionCode}).`);
-          const popup = new mapboxgl.Popup({ offset: 25 })
-            .setLngLat(coordinates)
-            .setHTML(`<h3>${regionName}</h3><p>Pas de données disponibles pour 2022.</p>`)
-            .addTo(this.map);
-        }
-      });
-    });
-  }
+  
+  
 }

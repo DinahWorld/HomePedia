@@ -1,11 +1,9 @@
 <p>About</p>
 <p>Subheading for description or instructions</p>
-<div style="flex-direction: row">
-  <table mat-table [dataSource]="dataSource" class="home-table">
-
-      <!--- Note that these columns can be defined in any order.
-            The actual rendered columns are set as a property on the row definition" -->
-    
+<div style="display: flex; flex-direction: row; align-items: flex-start; margin: 2rem;">
+  <div style="flex: 2; margin-right: 3rem;">
+    <table mat-table [dataSource]="dataSource" class="home-table">
+      
       <!-- Position Column -->
       <ng-container matColumnDef="position">
         <th mat-header-cell *matHeaderCellDef> Col1 </th>
@@ -28,5 +26,6 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </table>
-  <app-map></app-map>
+  </div>
+  <app-map style="flex: 3"></app-map>
 </div>
