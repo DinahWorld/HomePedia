@@ -7,6 +7,6 @@
 <div class="dashboard">
   <div class="square"><app-election-chart></app-election-chart></div>
   <div class="square"><app-election-chart></app-election-chart></div>
-  <app-tab [data]="educationData"></app-tab>
-  <app-tab [data]="restaurantData"></app-tab>
+  <app-tab *ngIf="educationData" [data]="educationData"></app-tab>
+  <app-tab *ngIf="restaurantData" [data]="restaurantData"></app-tab>
 </div>

@@ -14,7 +14,7 @@ export class ElectionsService {
 
   searchElectionDataByCity(locality: string): Observable<any> {
     const formattedLocality = this.utils.formatString(locality);
-    const params = new HttpParams().set('limit', '20').set('refine', `com_name:${formattedLocality}`);
+    const params = new HttpParams().set('refine', `com_name:${formattedLocality}`);
 
     return this.http.get<any>(this.url, { params });
   }

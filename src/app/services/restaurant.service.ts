@@ -13,7 +13,7 @@ export class RestaurantService {
 
   searchFoodServicesByLocation(locality: string): Observable<any> {
     const formattedLocality = this.utils.formatString(locality);
-    const params = new HttpParams().set('limit', '20').set('refine', `meta_name_com:${formattedLocality}`);
+    const params = new HttpParams().set('refine', `meta_name_com:${formattedLocality}`);
 
     return this.http.get<any>(this.url, { params });
   }
