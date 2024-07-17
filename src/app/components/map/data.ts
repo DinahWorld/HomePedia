@@ -1,6 +1,7 @@
 export interface PriceData {
-    name: string;
+    name?: string;
     price: number;
+    code?: string;
 }
   
 export interface Prices {
@@ -22,21 +23,6 @@ export const prices: Prices = {
         {name: "Centre-Val de Loire", price: 2400},
         {name: "Pays de la Loire", price: 2500},
         {name: "Corse", price: 3000}
-    ],
-    "departement": [
-        {name: "Rhône", price: 3000},
-        {name: "Paris", price: 9000},
-        {name: "Gironde", price: 2800},
-        {name: "Alpes-Maritimes", price: 5200},
-        {name: "Haute-Garonne", price: 2500},
-        {name: "Nord", price: 1900},
-        {name: "Ille-et-Vilaine", price: 2900},
-        {name: "Bas-Rhin", price: 2200},
-        {name: "Seine-Maritime", price: 2100},
-        {name: "Côte-d'Or", price: 2000},
-        {name: "Loiret", price: 2300},
-        {name: "Loire-Atlantique", price: 2700},
-        {name: "Corse-du-Sud", price: 3200}
     ],
     "commune": [
         {name: "Lyon", price: 3500},

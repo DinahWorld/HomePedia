@@ -1,13 +1,15 @@
-import { AfterViewInit, Component, Inject, NgZone, OnInit, PLATFORM_ID } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Inject, NgZone, OnInit, Output, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import mapboxgl from 'mapbox-gl';
 import environments from "../../../environments/environment";
 import { isPlatformBrowser } from '@angular/common';
-import { prices, PriceData } from './data';
+import { prices, PriceData, Prices } from './data';
+import { MapDepartementService } from '../../services/map-departement.service';
 
 interface GeoJSONFeature {
   id: number;
   properties: {
+    code: string;
     nom: string;
     price?: number;
   };
@@ -25,6 +27,10 @@ interface GeoJSONData {
   styleUrls: ['./map.component.scss']
 })
 export class MapComponent implements OnInit, AfterViewInit {
+  @Output() placeSelected = new EventEmitter<string>();
+  @Output() placeSelectedPrice = new EventEmitter<number>();
+  @Output() placeSelectedCodeInsee = new EventEmitter<number>();
+
   map!: mapboxgl.Map;
   lat: number = 46.603354;
   lng: number = 1.888334;
@@ -34,7 +40,8 @@ export class MapComponent implements OnInit, AfterViewInit {
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private zone: NgZone,
-    private http: HttpClient
+    private http: HttpClient,
+    private mapDepartementService: MapDepartementService
   ) {}
 
   ngOnInit(): void {
@@ -72,9 +79,11 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
 
   loadGeoJSONData(): void {
-    this.loadRegionData();
-    this.loadDepartementData();
-    this.loadCommuneData();
+    this.mapDepartementService.getDepartementPrice().subscribe(price => {
+      this.loadRegionData();
+      this.loadDepartementData(price);
+      this.loadCommuneData(price);
+    });
   }
 
   loadRegionData(): void {
@@ -82,29 +91,31 @@ export class MapComponent implements OnInit, AfterViewInit {
       const geojsonData = this.addIdsToGeoJSONData(data, prices['region']);
       this.addSource('region', geojsonData);
       this.addLayer('region-layer', 'region', 'fill', { 'fill-opacity': 0 }, {}, 3, 6.5);
-      this.addLayer('region-outline', 'region', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.8], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 3, 6.5);
+      this.addLayer('region-outline', 'region', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.8], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#008B8B','#FFF'] }, {}, 3, 6.5);
     });
   }
 
-  loadDepartementData(): void {
+  loadDepartementData(price: Prices): void {
     this.http.get<GeoJSONData>('assets/departements.geojson').subscribe(data => {
-      const geojsonData = this.addIdsToGeoJSONData(data, prices['departement']);
+      const geojsonData = this.addIdsToGeoJSONData(data, price["departements"]);
       this.addSource('departement', geojsonData);
-      const colorExpression = this.generateColorExpression(prices['departement']);
-      this.addLayer('departement-layer', 'departement', 'fill', { 'fill-color': colorExpression, 'fill-opacity': 0.7 }, {}, 3, 7.2);
-      this.addLayer('departement-outline', 'departement', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0.3], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 4, 6.5);
-      this.addLayer('departement-outline-zoom', 'departement', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 6.5, 10.5);
-    });
+      const colorExpression = this.generateColorExpression(price["departements"]);
+      
+      this.addLayer('departement-layer', 'departement', 'fill', { 'fill-color': colorExpression, 'fill-opacity': 0.8 }, {}, 3, 7.2);
+      this.addLayer('departement-outline', 'departement', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0.3], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#008B8B','#FFF'] }, {}, 4, 6.5);
+      this.addLayer('departement-outline-zoom', 'departement', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#008B8B','#FFF'] }, {}, 6.5, 10.5);
+      })
   }
 
-  loadCommuneData(): void {
+  loadCommuneData(price: Prices): void {
     this.http.get<GeoJSONData>('assets/communes.geojson').subscribe(data => {
-      const geojsonData = this.addIdsToGeoJSONData(data, prices['commune']);
+      const geojsonData = this.addIdsToGeoJSONData(data, price['communes']);
       this.addSource('commune', geojsonData);
-      const colorExpression = this.generateColorExpression(prices['commune']);
+      const colorExpression = this.generateColorExpression(price['communes']);
+
       this.addLayer('commune-layer', 'commune', 'fill', { 'fill-color': colorExpression, 'fill-opacity': 0.7 }, {}, 7.2);
-      this.addLayer('commune-outline', 'commune', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0.3], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 7.2, 10.5);
-      this.addLayer('commune-outline-zoom', 'commune', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#00FF00','#FFF'] }, {}, 10.5);
+      this.addLayer('commune-outline', 'commune', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1, 0.3], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#008B8B','#FFF'] }, {}, 7.2, 10.5);
+      this.addLayer('commune-outline-zoom', 'commune', 'line', { 'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5], 'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], '#008B8B','#FFF'] }, {}, 10.5);
 
       this.map.moveLayer("region-outline", "departement-outline");
       this.map.moveLayer("departement-outline-zoom", "commune-outline");
@@ -115,17 +126,7 @@ export class MapComponent implements OnInit, AfterViewInit {
   addIdsToGeoJSONData(data: GeoJSONData, priceData: PriceData[]): GeoJSONData {
     data.features.forEach((feature, index) => {
       feature.id = index + 1;
-      const region = priceData.find(r => r.name === feature.properties.nom);
-      if (region) {
-        feature.properties.price = region.price;
-      }
-    });
-    return data;
-  }
-
-  addPricesToGeoJSONData(data: GeoJSONData, priceData: PriceData[]): GeoJSONData {
-    data.features.forEach(feature => {
-      const region = priceData.find(r => r.name === feature.properties.nom);
+      const region = priceData.find(r => r.code === feature.properties.code);
       if (region) {
         feature.properties.price = region.price;
       }
@@ -153,21 +154,66 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
 
   generateColorExpression(prices: PriceData[]): any[] {
-    const stops = [];
-    const colors = ['#FFFFFF', '#FFCCCC', '#FF9999', '#FF6666', '#FF0000'];
+    const stops: (string | number)[][] = [];
+    const colors = [
+        "#004d00",
+        "#006600",
+        "#4CAF50",
+        "#8BC34A",
+        "#CDDC39",
+        "#FFEB3B",
+        "#FFC107",
+        "#FF9800",
+        "#FF5722",
+        "#FF8A80",
+        "#F44336",
+        "#FF5252",
+        "#FF3333",
+        "#8B0000",
+        "#E57373",
+        "#EF5350"
+    ];
 
     const priceValues = prices.map((entry: PriceData) => entry.price);
     const minPrice = Math.min(...priceValues);
     const maxPrice = Math.max(...priceValues);
-    const step = (maxPrice - minPrice) / (colors.length - 1);
 
-    for (let i = 0; i < colors.length; i++) {
-      const price = minPrice + i * step;
-      stops.push([price, colors[i]]);
+    const lowerSegmentCount = 9;
+    const middleSegmentCount = 5;
+    const upperSegmentCount = 1;
+
+    const lowerThreshold = minPrice + (maxPrice - minPrice) * 0.2;
+    const middleThreshold = minPrice + (maxPrice - minPrice) * 0.7;
+    let lastPrice = minPrice;
+
+    for (let i = 0; i < lowerSegmentCount; i++) {
+        const ratio = i / (lowerSegmentCount - 1);
+        const price = minPrice + ratio * (lowerThreshold - minPrice);
+        stops.push([Math.round(price), colors[i]]);
+        if (i + 1 === lowerSegmentCount) lastPrice = price;
     }
 
-    return ['interpolate', ['linear'], ['get', 'price'], ...stops.flat()];
+    for (let i = 0; i < middleSegmentCount; i++) {
+        const ratio = i / (middleSegmentCount - 1);
+        const price = lowerThreshold + ratio * (middleThreshold - lowerThreshold);
+        stops.push([Math.round(price), colors[lowerSegmentCount + i]]);
+        if (i + 1 === middleSegmentCount) lastPrice = price;
+    }
+
+    for (let i = 0; i < upperSegmentCount; i++) {
+        const ratio = i / (upperSegmentCount - 1);
+        const price = middleThreshold + ratio * (maxPrice - middleThreshold);
+        stops.push([Math.round(price), colors[lowerSegmentCount + middleSegmentCount + i]]);
+    }
+
+    const filteredStops = stops.filter((stop, index) => {
+        return index === 0 || stop[0] > stops[index - 1][0];
+    });
+
+    return ['interpolate', ['linear'], ['get', 'price'], ...filteredStops.flat()];
   }
+
+
 
   addHoverListeners(): void {
     const layers = [
@@ -185,11 +231,9 @@ export class MapComponent implements OnInit, AfterViewInit {
   
         const feature = e.features && e.features[0];
         if (!feature) {
-          // console.log('No feature found at click event');
           return;
         }
   
-        // Réinitialisez l'état de la région précédemment sélectionnée
         if (this.hoveredFeatureId !== null && this.hoveredFeatureId !== feature.id) {
           this.map.setFeatureState(
             { source: this.lastPlace.split('-')[0], id: this.hoveredFeatureId },
@@ -197,7 +241,6 @@ export class MapComponent implements OnInit, AfterViewInit {
           );
         }
   
-        // Conservez l'ID de la région cliquée
         this.hoveredFeatureId = feature.id as number;
         this.lastPlace = layer.id;
   
@@ -206,10 +249,12 @@ export class MapComponent implements OnInit, AfterViewInit {
           { hover: true }
         );
   
-        // Affichez le nom de la région et le prix au mètre carré
-        const regionName = feature.properties.nom;
-        const pricePerSquareMeter = feature.properties.price;
-        console.log(`${layer.id.split('-')[0]} : ${regionName}, Prix au mètre carré : ${pricePerSquareMeter}`);
+        const regionName : string = feature.properties.nom;
+        const pricePerSquareMeter : number = feature.properties.price;
+        const codeInsee : number = feature.properties.code;
+        this.placeSelected.emit(regionName);
+        this.placeSelectedPrice.emit(pricePerSquareMeter);
+        this.placeSelectedCodeInsee.emit(codeInsee);
       });
     });
   }

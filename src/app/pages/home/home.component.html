@@ -2,6 +2,12 @@
 <p>Subheading for description or instructions</p>
 <div style="display: flex; flex-direction: row; align-items: flex-start; margin: 2rem;">
   <div style="flex: 2; margin-right: 3rem;">
+    <div *ngIf="selectedPlaceName">
+      <p>Prix Imobilier : {{selectedPlaceName}}</p>
+    </div>
+    <div *ngIf="selectedPlacePrice">
+      <p>Prix du mètre carré : {{selectedPlacePrice}}</p>
+    </div>
     <table mat-table [dataSource]="dataSource" class="home-table">
       
       <!-- Position Column -->
@@ -27,5 +33,5 @@
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </table>
   </div>
-  <app-map style="flex: 3"></app-map>
+  <app-map style="flex: 3" (placeSelected)="onPlaceSelected($event)" (placeSelectedPrice)="onPlaceSelectedPrice($event)" (placeSelectedCodeInsee)="onPlaceSelectedCodeInsee($event)"></app-map>
 </div>

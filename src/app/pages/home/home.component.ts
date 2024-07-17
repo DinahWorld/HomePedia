@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import {MatTableModule} from '@angular/material/table';
 import { MapComponent } from '../../components/map/map.component';
 import { NgIf } from '@angular/common';
@@ -30,15 +30,27 @@ const ELEMENT_DATA: PeriodicElement[] = [
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent {
   displayedColumns: string[] = ['position', 'name', 'weight'];
   dataSource = ELEMENT_DATA;
-  isMapLoaded = false;
+  selectedPlaceName: string | null = null;
+  selectedPlacePrice: number | null = null;
+  selectedPlaceCodeInsee: number | null = null;
 
-  ngOnInit(): void {
-    // Simuler un chargement ou une condition spécifique avant d'afficher la carte
-    setTimeout(() => {
-      this.isMapLoaded = true;
-    }, 1000); // Par exemple, 1 seconde
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  onPlaceSelectedPrice(placePrice: number): void {
+    this.selectedPlacePrice = placePrice;
+    this.cdr.detectChanges();
+  }
+
+  onPlaceSelected(placeName: string): void {
+    this.selectedPlaceName = placeName;
+    this.cdr.detectChanges();
+  }
+
+  onPlaceSelectedCodeInsee(placeCode: number): void {
+    this.selectedPlaceCodeInsee = placeCode;
+    this.cdr.detectChanges();
   }
 }
