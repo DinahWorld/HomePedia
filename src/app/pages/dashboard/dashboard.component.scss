@@ -8,10 +8,11 @@
 }
 
 .square {
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
+  background-color: #fdfbff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 6px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
 }
