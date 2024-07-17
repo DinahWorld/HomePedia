@@ -6,6 +6,7 @@ import { EducationService } from '../../services/education.service';
 import { RestaurantService } from '../../services/restaurant.service';
 import { ElectionsService } from '../../services/elections.service';
 import { ElectionChartComponent } from '../../components/election-chart/election-chart.component';
+import { TabComponent } from '../../components/tab/tab.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -55,7 +56,7 @@ export class DashboardComponent {
 }
 
 @NgModule({
-  imports: [BrowserModule, FormsModule, ElectionChartComponent],
+  imports: [BrowserModule, FormsModule, ElectionChartComponent, TabComponent],
   declarations: [DashboardComponent],
 })
 export class DummyModule {}
