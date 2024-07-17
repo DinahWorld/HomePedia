@@ -16,6 +16,8 @@ import { TabComponent } from '../../components/tab/tab.component';
 export class DashboardComponent {
   searchValue = '';
   countryData: any;
+  restaurantData: any[] = [];
+  educationData: any[] = [];
 
   constructor(
     private educationService: EducationService,
@@ -29,6 +31,7 @@ export class DashboardComponent {
     this.educationService.searchSchoolsByLocation(this.searchValue).subscribe(
       data => {
         console.log('School received:', data);
+        this.educationData = data.results;
       },
       error => {
         console.error('Error:', error);
@@ -38,6 +41,7 @@ export class DashboardComponent {
     this.restaurantService.searchFoodServicesByLocation(this.searchValue).subscribe(
       data => {
         console.log('Restaurants received:', data);
+        this.restaurantData = data.results;
       },
       error => {
         console.error('Error:', error);
