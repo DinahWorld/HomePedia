@@ -1,9 +1,11 @@
-<h1>Country Information</h1>
+<div class="top">
+  <h3>Country Information</h3>
 
-<form (ngSubmit)="searchCountry()">
-  <input type="search" placeholder="Search Country" [(ngModel)]="searchValue" name="searchTerm" />
-  <button type="submit">Search</button>
-</form>
+  <form (ngSubmit)="searchCountry()">
+    <input type="search" placeholder="Search Country" [(ngModel)]="searchValue" name="searchTerm" />
+    <button type="submit">Search</button>
+  </form>
+</div>
 <div class="dashboard">
   <div class="square"><app-election-chart></app-election-chart></div>
   <div class="square"><app-price-chart [communeName]="searchValue"></app-price-chart></div>
