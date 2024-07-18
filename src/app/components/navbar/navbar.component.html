@@ -1,9 +1,6 @@
-<mat-toolbar>
-    <p>Home</p>
-    <p class="green">Pedia</p>
-    <span class="example-spacer"></span>
-    <button mat-button>Link 1</button>
-    <button mat-button>Link 2</button>
-    <button mat-button>Link 3</button>
-    <button mat-flat-button class="test">Button</button>
+<mat-toolbar class="navbar">
+  <p>Home <b class="green">Pedia</b></p>
+
+  <span class="example-spacer"></span>
+  <button mat-flat-button class="test" (click)="goToDashboard()">Go to dashboard</button>
 </mat-toolbar>

@@ -1,37 +1,42 @@
-<p>About</p>
-<p>Subheading for description or instructions</p>
-<div style="display: flex; flex-direction: row; align-items: flex-start; margin: 2rem;">
-  <div style="flex: 2; margin-right: 3rem;">
+<div class="text-zone">
+  <h2>Welcome to Home Pedia !</h2>
+  <p>
+    we are dedicated to providing in-depth information and insights about the diverse regions and cities of France.<br />
+    Whether you're planning a move, a visit, or looking to understand more about a specific area, we offer the comprehensive data and
+    analysis you need.
+  </p>
+</div>
+<div style="display: flex; flex-direction: row; align-items: flex-start; margin: 2rem">
+  <div style="flex: 2; margin-right: 3rem">
     <div *ngIf="selectedPlaceName">
-      <p>Prix Imobilier : {{selectedPlaceName}}</p>
+      <p>Prix Imobilier : {{ selectedPlaceName }}</p>
     </div>
     <div *ngIf="selectedPlacePrice">
-      <p>Prix du mètre carré : {{selectedPlacePrice}}</p>
+      <p>Prix du mètre carré : {{ selectedPlacePrice }}</p>
     </div>
     <table mat-table [dataSource]="dataSource" class="home-table">
-      
-      <!-- Position Column -->
       <ng-container matColumnDef="position">
-        <th mat-header-cell *matHeaderCellDef> Col1 </th>
-        <td mat-cell *matCellDef="let element"> {{element.position}} </td>
+        <th mat-header-cell *matHeaderCellDef>Col1</th>
+        <td mat-cell *matCellDef="let element">{{ element.position }}</td>
       </ng-container>
-    
-      <!-- Name Column -->
+
       <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef> Col2 </th>
-        <td mat-cell *matCellDef="let element"> {{element.name}} </td>
+        <th mat-header-cell *matHeaderCellDef>Col2</th>
+        <td mat-cell *matCellDef="let element">{{ element.name }}</td>
       </ng-container>
-    
-      <!-- Weight Column -->
+
       <ng-container matColumnDef="weight">
-        <th mat-header-cell *matHeaderCellDef> Col3 </th>
-        <td mat-cell *matCellDef="let element"> {{element.weight}} </td>
+        <th mat-header-cell *matHeaderCellDef>Col3</th>
+        <td mat-cell *matCellDef="let element">{{ element.weight }}</td>
       </ng-container>
-    
-      
+
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
     </table>
   </div>
-  <app-map style="flex: 3" (placeSelected)="onPlaceSelected($event)" (placeSelectedPrice)="onPlaceSelectedPrice($event)" (placeSelectedCodeInsee)="onPlaceSelectedCodeInsee($event)"></app-map>
+  <app-map
+    style="flex: 3"
+    (placeSelected)="onPlaceSelected($event)"
+    (placeSelectedPrice)="onPlaceSelectedPrice($event)"
+    (placeSelectedCodeInsee)="onPlaceSelectedCodeInsee($event)"></app-map>
 </div>
