@@ -2,6 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export interface Election {
+  resultat: number[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -20,6 +24,6 @@ export class EducationService {
     const formattedLocality = this.formatLocality(locality);
     const params = new HttpParams().set('limit', '20').set('refine', `localite_acheminement_uai:"${formattedLocality}"`);
 
-    return this.http.get<any>(this.url, { params });
+    return this.http.get<Election>(this.url, { params });
   }
 }

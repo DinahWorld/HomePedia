@@ -1,10 +1,11 @@
-import { AfterViewInit, Component, EventEmitter, Inject, NgZone, OnInit, Output, PLATFORM_ID } from '@angular/core';
+import { Component, EventEmitter, Inject, NgZone, OnInit, Output, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import mapboxgl from 'mapbox-gl';
 import environments from "../../../environments/environment";
 import { isPlatformBrowser } from '@angular/common';
 import { prices, PriceData, Prices } from './data';
 import { MapDepartementService } from '../../services/map-departement.service';
+import { DataService } from '../../services/data.service';
 
 interface GeoJSONFeature {
   id: number;
@@ -26,7 +27,7 @@ interface GeoJSONData {
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss']
 })
-export class MapComponent implements OnInit, AfterViewInit {
+export class MapComponent implements OnInit {
   @Output() placeSelected = new EventEmitter<string>();
   @Output() placeSelectedPrice = new EventEmitter<number>();
   @Output() placeSelectedCodeInsee = new EventEmitter<number>();
@@ -41,14 +42,12 @@ export class MapComponent implements OnInit, AfterViewInit {
     @Inject(PLATFORM_ID) private platformId: Object,
     private zone: NgZone,
     private http: HttpClient,
-    private mapDepartementService: MapDepartementService
+    private mapDepartementService: MapDepartementService,
+    private dataService: DataService
   ) {}
 
   ngOnInit(): void {
     mapboxgl.accessToken = environments.mapbox.accessToken;
-  }
-
-  ngAfterViewInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       document.addEventListener('DOMContentLoaded', () => {
         this.zone.runOutsideAngular(() => {
@@ -249,12 +248,13 @@ export class MapComponent implements OnInit, AfterViewInit {
           { hover: true }
         );
   
-        const regionName : string = feature.properties.nom;
+        const placeName : string = feature.properties.nom;
         const pricePerSquareMeter : number = feature.properties.price;
         const codeInsee : number = feature.properties.code;
-        this.placeSelected.emit(regionName);
+        this.placeSelected.emit(placeName);
         this.placeSelectedPrice.emit(pricePerSquareMeter);
         this.placeSelectedCodeInsee.emit(codeInsee);
+        this.dataService.setData(placeName);
       });
     });
   }

@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { NgIf } from '@angular/common';
 
 import { NgApexchartsModule } from 'ng-apexcharts';
@@ -19,15 +19,42 @@ export type ChartOptions = {
   templateUrl: './election-chart.component.html',
   styleUrl: './election-chart.component.scss',
 })
-export class ElectionChartComponent {
+export class ElectionChartComponent implements OnChanges {
   @ViewChild('chart') chart!: ChartComponent;
+  @Input() macron: number = 0;
+  @Input() lepen: number = 0;
   public chartOptions: Partial<ChartOptions>;
 
   ngOnInit(): void {}
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes["macron"] || changes["lepen"]) {
+      this.chartOptions = {
+        series: [this.macron, this.lepen],
+        chart: {
+          width: 380,
+          type: 'pie',
+        },
+        labels: ['MACRON', 'LEPEN'],
+        responsive: [
+          {
+            breakpoint: 480,
+            options: {
+              chart: {
+                width: 200,
+              },
+              legend: {
+                position: 'bottom',
+              },
+            },
+          },
+        ],
+      };
+    }
+  }
   constructor() {
     this.chartOptions = {
-      series: [70, 30],
+      series: [this.macron, this.lepen],
       chart: {
         width: 380,
         type: 'pie',

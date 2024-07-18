@@ -7,7 +7,7 @@
   </form>
 </div>
 <div class="dashboard">
-  <div class="square"><app-election-chart></app-election-chart></div>
+  <div class="square"><app-election-chart [macron]="macron" [lepen]="lepen"></app-election-chart></div>
   <div class="square"><app-price-chart [communeName]="searchValue"></app-price-chart></div>
   <app-tab *ngIf="educationData" [data]="educationData"></app-tab>
   <app-tab *ngIf="restaurantData" [data]="restaurantData"></app-tab>
